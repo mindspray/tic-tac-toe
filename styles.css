@@ -1,0 +1,21 @@
+:root{
+  margin:0;
+  padding: 0;
+}
+
+main {
+  width: 900px;
+  height: 900px;
+}
+
+.gameBoard {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 15px;
+  background-color: black;
+}
+.gameBoard > * {
+  height: 200px;
+  background-color: #fff;
+}
