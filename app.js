@@ -1,18 +1,3 @@
-/*
- * ALGORITHM *
-Local Multiplayer only. Either shared mouse or keyboard.
-[X]1) Players select who goes first, X or O.
-[X]2) Player select closes and a blank gameboard gets drawn
-[ ]3) A blinking (marker?) cursor shows which cell is currently active.
-When clicked-
-[X]a) any cell that hasn't already been selected will receive either an X or an O, depending on which player is going.
-[X]b) The control will be turned over to the other player.
-[X]4) Play will end when a winning combination has been created; a winning condition being when three symbols in a straight line match, either all X's or all O's.
-[ ]5) A winner is awarded a point, and play continues until a best of 3 winner is chosen, or the game is reset.
-
-*/
-
-
 
 /**
  * Creates a player object
@@ -46,16 +31,19 @@ let playerController = () => {
   let selectObject = document.querySelector('.XOSelect');
   let gameBoard = document.querySelector('.gameBoard');
 
+  let P1Name = prompt("Enter a name for Player 1", "Player 1") || "Player 1";
+  let P2Name = prompt("Enter a name for Player 2", "Player 2") || "Player 2";
+
   XButton.addEventListener('click', (event) => {
-    PlayerOne = PlayerFactory('Player 1', 'X');
-    PlayerTwo = PlayerFactory('Player 2', 'O');
+    PlayerOne = PlayerFactory(P1Name, 'X');
+    PlayerTwo = PlayerFactory(P2Name, 'O');
     selectObject.style.display = 'none';
     gameBoard.style.display = 'grid';
     currentPlayer = PlayerOne;
   });
   OButton.addEventListener('click', (event) => {
-    PlayerOne = PlayerFactory('Name1', 'O');
-    PlayerTwo = PlayerFactory('Name2', 'X');
+    PlayerOne = PlayerFactory(P1Name, 'O');
+    PlayerTwo = PlayerFactory(P2Name, 'X');
     selectObject.style.display = 'none';
     gameBoard.style.display = 'grid';
     currentPlayer = PlayerOne;
@@ -63,15 +51,6 @@ let playerController = () => {
 };
 playerController();
 
-/**
- *
- * @param {Object} currentPlayer The object to check for a condition
- * @returns The complementary object
- */
-let swap = function (currentPlayer) {
-  if (currentPlayer == PlayerOne) return PlayerTwo;
-  else if (currentPlayer == PlayerTwo) return PlayerOne;
-};
 
 /**
  * A function to generate a random number up to a specified limit
@@ -93,25 +72,6 @@ let reverseMDArrayCopy = (mdArray) => {
   return newArray;
 };
 
-// /**
-//  * Get a series of numbers in an array, either multiples of the same number, or random numbers up to a specified range.
-//  * @param {Number} multi The number of times to repeat
-//  * @param {Number} limit The number upper limit
-//  * @param {Boolean} isRandom Whether to randomize or have the same numbers across the board
-//  * @returns {Array<Number>} Returns an array of multiples of either the same number, or random numbers up to a specifienewArrayd range. e.g. {5,5,5} or {2,8,3}
-//  */
-// let getNumberSeries = (multi, limit, isRandom = false) => {
-//   if (typeof multi === 'number') {
-//     if (isRandom) {
-//       return Array.from({ length: multi }, () =>
-//         Math.floor(Math.random() * (limit || 1))
-//       );
-//     } else {
-//       return Array(multi).fill(limit);
-//     }
-//   }
-// };
-
 /**
  * 
  * @param {Array<Number>} arrUL Unordered Array (candidate)
@@ -121,7 +81,7 @@ const matchArraysUnorderedVsOrdered = (arrUL, arrOL) => {
   let matchCount = 0;
   for (let elem of arrOL) { // e.g. for 4 of 4, 1, 7
     if (matchCount < 3){
-      console.log(`looking for ${+elem} in arrUL ${arrUL}`);
+      // console.log(`looking for ${+elem} in arrUL ${arrUL}`);
       if(!(arrUL.indexOf(+elem) === -1)){ // 
         console.log(`found elem ${elem} in arrUL:${arrUL}`);
         matchCount++;
@@ -141,8 +101,22 @@ const matchArraysUnorderedVsOrdered = (arrUL, arrOL) => {
 /**
  * An array of individual game cells (9 in total)
  */
-const cells = document.querySelectorAll('.gameBoard > *');
+const cells = document.querySelectorAll('.cell');
 
+let opponentController = function(){
+  let occupied = false;
+
+  cells.forEach((cell, index) => {
+    if (cell.textContent === "X" || cell.textContent === "O") {
+      occupied = true;
+    }
+  })
+  if(occupied) {
+
+  } else {
+
+  }
+}
 
 let gameOver = false;
 
@@ -158,26 +132,86 @@ cells.forEach((cell, index) => {
         cell.style.backgroundColor = `${bgHSLColor}`;
         // Capture current cell for currentPlayer
         currentPlayer.placePiece(cell);
-        // If cell matches the players piece, add to candidate
-        if (cell.textContent === currentPlayer.getPiece()) {
-          currentPlayer.candidate.push(index);
-        }
-        console.log("candidate: " + currentPlayer.candidate);
+        currentPlayer.candidate.push(index); // add to candidate array
+        
         if (currentPlayer.candidate.length >= 3) {
+          /**
+           * Tests whether the candidate is a win.
+           * @param {Array<Number>}  candidate The currently constructed candidate
+           * @returns True if the tested candidate is a match
+           */
+          const passWinningConditionTest = ( candidate ) => {
+            /**
+             * Creates a multidimensional array of win conditions
+             * @returns A multidimensional array consisting of winning possibilities
+             */
+            const getWinningConditionsMatrix = () => {
+              const keypadWins = {
+                row1: [0, 1, 2],
+                row2: [3, 4, 5],
+                row3: [6, 7, 8],
+                col1: [0, 3, 6],
+                col2: [1, 4, 7],
+                col3: [2, 5, 8],
+                tlToBr: [0, 4, 8],
+                brToTr: [2, 4, 6],
+              };
+              const winningMatrix = [];
+          
+              for (let line in keypadWins) {
+                winningMatrix.push(keypadWins[line]);
+              }
+              return winningMatrix;
+            };
+          
+            /**
+             * @type {Array<Array>} An array of arrays of winning conditions
+             */
+            let winningMatrix = getWinningConditionsMatrix();
+          
+            for (let winSet of winningMatrix) {
+              console.log(`Comparing candidate ${candidate} to winSet ${winSet}`);
+              if (
+                matchArraysUnorderedVsOrdered(candidate, winSet)
+              ) {
+                return true;
+              }
+            }
+            return false;
+          }
           let result = passWinningConditionTest(currentPlayer.candidate);
           if(result){
             gameOver = true;
             cells.forEach((item)=> item.removeEventListener("click", gameLogic));
 
+            let displayEndScreen = (result) => {
+              let endScreen = document.querySelector('.endScreen');
+              let endScreenMessage = document.querySelector('.endScreen .message');
+              let vsPlayerButton = document.querySelector('vsPlayer');
+              let vsCpu = document.querySelector('vsCpu');
+
+              endScreen.style.display = "initial";
+              endScreenMessage.textContent = result ? "You win" : "You lose";
+              // vsPlayerButton.addEventListener("click", () => {
+              //   // Run some kind of createNewGame() function;
+              // })
+              // vsCpu.addEventListener("click", () => {
+              //   PlayerTwo = 
+              // })
+            }
+            displayEndScreen(result);
+
             console.log(`You passed the winning conditions! The result is: ${result}`);
           }
         }
-        currentPlayer = swap(currentPlayer);
+
+        let swapPlayer = (currentPlayer) => (currentPlayer == PlayerOne) ? PlayerTwo : PlayerOne;
+        currentPlayer = swapPlayer(currentPlayer);
       } else {
         return;
       }
     } else {
-      console.log("Game over");
+      return;
     }
   };
   /**
@@ -185,59 +219,3 @@ cells.forEach((cell, index) => {
    */
   cell.addEventListener('click', gameLogic );
 });
-
-/**
- * Creates a multidimensional array of win conditions
- * @returns A multidimensional array consisting of winning possibilities
- */
-const getWinningConditionsMatrix = () => {
-  const keypadWins = {
-    row1: [0, 1, 2],
-    row2: [3, 4, 5],
-    row3: [6, 7, 8],
-    col1: [0, 3, 6],
-    col2: [1, 4, 7],
-    col3: [2, 5, 8],
-    tlToBr: [0, 4, 8],
-    brToTr: [2, 4, 6],
-  };
-  const winningMatrix = [];
-
-  for (let line in keypadWins) {
-    winningMatrix.push(keypadWins[line]);
-  }
-  return winningMatrix;
-};
-
-/**
- * Tests whether the candidate is a win.
- * @param {Array<Number>}  candidate The currently constructed candidate
- * @returns True if the tested candidate is a match
- */
-const passWinningConditionTest = ( candidate ) => {
-  // get array of arrays of winning conditions.
-  /**
-   * @type {Array<Array>}
-   */
-  let winningMatrix = getWinningConditionsMatrix();
-  console.log(`Candidate: ${ candidate}`);
-  console.log(`Winning: ${winningMatrix}`);
-  console.log(`Reverse: ${reverseMDArrayCopy(winningMatrix)}`);
-
-  for (let winSet of winningMatrix) {
-    console.log(`candidate: ${candidate} == winSet: ${winSet}?`);
-    console.log(`Comparing candidate ${candidate} to winSet ${winSet}`);
-    if (
-      //  candidate.toString() === winSet.toString()
-      matchArraysUnorderedVsOrdered(candidate, winSet)
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/* 
-  PROBLEM: Accounting for a non-perfect candidate. If I have 4 numbers to test, i need 3 of them to be in a specific order to count as a win. The best bet is to test the candidate against all winning conditions. If a condition matches in the 0th index, continue to the next candidate digit. If that does match and there's less than 3 matches or doesn't match, go to the next candidate digit provided it isn't a repeat of the starting index.
-
-*/
