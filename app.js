@@ -1,4 +1,4 @@
-
+// ======= PLAYER SETUP =======
 /**
  * Creates a player object
  * @param {String} name The player's name
@@ -8,10 +8,12 @@
 const PlayerFactory = (name, piece) => {
   let score = 0;
   let candidate = [];
+  let isCpu = false;
   let getPiece = () => piece;
   return {
     name,
     candidate,
+    isCpu,
     getPiece,
     placePiece: (targetElement) => (targetElement.innerText = piece),
     raiseScore: (amount = 1) => (score += amount),
@@ -26,14 +28,16 @@ let currentPlayer;
 
 // Player select
 let playerController = () => {
+  // Set up Player Select screen in DOM
   let XButton = document.querySelector('.XButton');
   let OButton = document.querySelector('.OButton');
   let selectObject = document.querySelector('.XOSelect');
   let gameBoard = document.querySelector('.gameBoard');
+  let vsCpuCheck = document.querySelector('#isCpuConfirm');
 
   let P1Name = prompt("Enter a name for Player 1", "Player 1") || "Player 1";
   let P2Name = prompt("Enter a name for Player 2", "Player 2") || "Player 2";
-
+  
   XButton.addEventListener('click', (event) => {
     PlayerOne = PlayerFactory(P1Name, 'X');
     PlayerTwo = PlayerFactory(P2Name, 'O');
@@ -48,19 +52,24 @@ let playerController = () => {
     gameBoard.style.display = 'grid';
     currentPlayer = PlayerOne;
   });
+  if (vsCpuCheck.checked){
+    PlayerTwo.isCpu = true;
+  }
+
 };
 playerController();
 
+// ======= UTILITIES =======
 
 /**
- * A function to generate a random number up to a specified limit
+ * A function to generate a random number up to n
  * @param {Number} limit
- * @returns {Number} A random number up to a specified limit
+ * @returns {Number} A random number up to n
  */
-let rand = (limit) => Math.floor(Math.random() * (limit || 1));
+let rand = (n) => Math.floor(Math.random() * (n || 1));
 
 /**
- * Gets a reversed copy of a multidimensional array of winning conditions
+ * Returns a reversed copy of a multidimensional array of winning conditions
  * @param {Array<array>} mdArray 
  * @returns A reversed copy of the multidimensional array
  */
@@ -76,6 +85,7 @@ let reverseMDArrayCopy = (mdArray) => {
  * 
  * @param {Array<Number>} arrUL Unordered Array (candidate)
  * @param {Array<Number>} arrOL Ordered Array (winSet)
+ * @returns A boolean value regarding whether the unordered array matches all 3 of its values to the winSet or not
  */
 const matchArraysUnorderedVsOrdered = (arrUL, arrOL) => {
   let matchCount = 0;
@@ -103,6 +113,9 @@ const matchArraysUnorderedVsOrdered = (arrUL, arrOL) => {
  */
 const cells = document.querySelectorAll('.cell');
 
+/**
+ * An opponent AI controller
+ */
 let opponentController = function(){
   let occupied = false;
 
@@ -117,6 +130,8 @@ let opponentController = function(){
 
   }
 }
+
+// ======= GAME LOGIC =======
 
 let gameOver = false;
 
@@ -192,9 +207,9 @@ cells.forEach((cell, index) => {
 
               endScreen.style.display = "initial";
               endScreenMessage.textContent = result ? "You win" : "You lose";
-              // vsPlayerButton.addEventListener("click", () => {
-              //   // Run some kind of createNewGame() function;
-              // })
+              vsPlayerButton.addEventListener("click", () => {
+                // Run some kind of createNewGame() function;
+              })
               // vsCpu.addEventListener("click", () => {
               //   PlayerTwo = 
               // })
