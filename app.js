@@ -11,10 +11,10 @@ const PlayerFactory = (name, piece) => {
   let isCpu = false;
   let getPiece = () => piece;
   return {
-    name,
     candidate,
     isCpu,
     getPiece,
+    getName: () => name,
     placePiece: (targetElement) => (targetElement.innerText = piece),
     raiseScore: (amount = 1) => (score += amount),
     lowerScore: (amount = 1) => (score -= amount),
@@ -204,9 +204,10 @@ cells.forEach((cell, index) => {
               let endScreenMessage = document.querySelector('.endScreen .message');
               let vsPlayerButton = document.querySelector('vsPlayer');
               let vsCpu = document.querySelector('vsCpu');
+              let currentPlayerPiece = currentPlayer.getPiece();
 
               endScreen.style.display = "initial";
-              endScreenMessage.textContent = result ? "You win" : "You lose";
+              endScreenMessage.textContent = `${currentPlayer.getName()} wins`;
               vsPlayerButton.addEventListener("click", () => {
                 // Run some kind of createNewGame() function;
               })
