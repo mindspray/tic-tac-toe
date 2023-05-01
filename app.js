@@ -43,6 +43,7 @@ let playerController = () => {
     PlayerTwo = PlayerFactory(P2Name, 'O');
     selectObject.style.display = 'none';
     gameBoard.style.display = 'grid';
+    gameBoard.style.gap = "15px";
     currentPlayer = PlayerOne;
   });
   OButton.addEventListener('click', (event) => {
@@ -50,6 +51,7 @@ let playerController = () => {
     PlayerTwo = PlayerFactory(P2Name, 'X');
     selectObject.style.display = 'none';
     gameBoard.style.display = 'grid';
+    gameBoard.style.gap = "15px";
     currentPlayer = PlayerOne;
   });
   if (vsCpuCheck.checked){
@@ -136,12 +138,11 @@ let opponentController = function(){
 let gameOver = false;
 
 cells.forEach((cell, index) => {
-  let clicked = false;
-  
   const gameLogic = () => {
     if(!gameOver){
-      if (!clicked) {
-        clicked = true; // Only single cell click allowed
+      if (!cell.textContent) {
+        // clicked = true; // Only single cell click allowed
+        let switchPlayer = () => (currentPlayer == PlayerOne) ? PlayerTwo : PlayerOne;
         // Cell color
         let bgHSLColor = `hsl(${rand(360)}deg, ${rand(100)}%, ${rand(60) + 30}%)`;
         cell.style.backgroundColor = `${bgHSLColor}`;
@@ -152,7 +153,7 @@ cells.forEach((cell, index) => {
         if (currentPlayer.candidate.length >= 3) {
           /**
            * Tests whether the candidate is a win.
-           * @param {Array<Number>}  candidate The currently constructed candidate
+           * @param {Array<Number>} candidate The currently constructed candidate
            * @returns True if the tested candidate is a match
            */
           const passWinningConditionTest = ( candidate ) => {
@@ -197,19 +198,31 @@ cells.forEach((cell, index) => {
           let result = passWinningConditionTest(currentPlayer.candidate);
           if(result){
             gameOver = true;
-            cells.forEach((item)=> item.removeEventListener("click", gameLogic));
-
+            cells.forEach(cell=> cell.style.pointerEvents = "none");
             let displayEndScreen = (result) => {
               let endScreen = document.querySelector('.endScreen');
               let endScreenMessage = document.querySelector('.endScreen .message');
-              let vsPlayerButton = document.querySelector('vsPlayer');
-              let vsCpu = document.querySelector('vsCpu');
+              let vsPlayerButton = document.querySelector('.vsPlayer');
+              let vsCpu = document.querySelector('.vsCpu');
               let currentPlayerPiece = currentPlayer.getPiece();
 
               endScreen.style.display = "initial";
               endScreenMessage.textContent = `${currentPlayer.getName()} wins`;
               vsPlayerButton.addEventListener("click", () => {
-                // Run some kind of createNewGame() function;
+                // Some kind of createNewGame() function
+                gameOver = false;
+                currentPlayer.raiseScore();
+                cells.forEach(cell=>{
+                  cell.style.pointerEvents = "initial";
+                  cell.textContent = "";
+                  cell.style.backgroundColor = "white";
+                })
+                endScreen.style.display = "none";
+                document.querySelector('.XOSelect').style.display = "flex";
+                document.querySelector('.gameBoard').style.gap = "0px";
+                PlayerOne.candidate = [];
+                PlayerTwo.candidate = [];
+                currentPlayer = switchPlayer();
               })
               // vsCpu.addEventListener("click", () => {
               //   PlayerTwo = 
@@ -221,8 +234,7 @@ cells.forEach((cell, index) => {
           }
         }
 
-        let swapPlayer = (currentPlayer) => (currentPlayer == PlayerOne) ? PlayerTwo : PlayerOne;
-        currentPlayer = swapPlayer(currentPlayer);
+        currentPlayer = switchPlayer();
       } else {
         return;
       }
