@@ -1,0 +1,14 @@
+1) UserOne selects 'vs Player' or 'vs CPU'
+2) UserOne enters their own name
+3) If needed, UserTwo enters their own name
+4) The gameBoard is drawn
+5) The score is tied at 0 before the match.
+6) UserOne(Now PlayerOne) goes first (should be random)
+7) 'X' is placed on the cell clicked
+8) The score is now 1 - 0
+9) A win doesn't need to be checked since there aren't enough pieces on the board to make one.
+10) The Player Switches. CPU goes now, placing a random 'O' since the challenger only has one piece.
+11) The score is now 1 - 1
+12) The Player Switches. User goes now.
+13) 'X is placed on the cell clicked.
+14) The score is now 2 - 0.
