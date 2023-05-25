@@ -153,23 +153,24 @@ let getXOCount = () => {
   return {x: xCount, o: oCount}
 }
 
+let hasEqualTurnCount = (() => {
+  const XOCount = getXOCount();
+  if (XOCount["o"] === XOCount["x"]){
+    return true;
+  }
+})
+
 let onEqualTurnCount = (func = ()=>{return})=>{
-  let XOCount = getXOCount();
-  let xCount = XOCount["x"];
-  let oCount = XOCount["o"];
-  if (currentPlayer === PlayerTwo && PlayerTwo.isCpu) {
-    if (oCount === xCount){
-      console.log(`Equal ran: ${JSON.stringify(XOCount)}`);
-      func();
-    }
+  const XOCount = getXOCount();
+  if (hasEqualTurnCount()){
+    console.log(`Equal ran: ${JSON.stringify(XOCount)}`);
+    func();
   }
 }
 
 let onUnequalTurnCount = (func) => {
   let XOCount = getXOCount();
-  let xCount = XOCount["x"];
-  let oCount = XOCount["o"];
-  if (xCount > oCount){
+  if (XOCount["x"] !== XOCount["o"]){
     console.log(`Unequal ran: ${JSON.stringify(XOCount)}`);
     func();
   }
@@ -185,13 +186,13 @@ let getFilledCells = () => {
   return filledCells;
 }
 
-// ======= GAME LOGIC =======
-
-let gameOver = false;
 let switchPlayer = () => {
   currentPlayer = currentPlayer == PlayerOne ? PlayerTwo : PlayerOne;
   console.log("Players switched");
 };
+// ======= GAME LOGIC =======
+
+let gameOver = false;
 
 // Win layout
 const keypadWins = {
@@ -205,11 +206,146 @@ const keypadWins = {
   blToTr: [2, 4, 6],
 };
 
+// CPU Turn
+let runCpuTurn = () => {
+  if (gameOver){
+    return;
+  }
+  let cpuPiece = currentPlayer.getPiece();
+  let emptyCells = [];
+  let cpuPiecePresent = false;
+  let opponentCells = [];
+  let lowPrioCells = [];
+  let priority = false;
+  let prioPiece;
+
+
+  cells.forEach((cell, index) => {
+    if (!cell.textContent) {
+      emptyCells.push(index);
+    }
+    if (cell.textContent === cpuPiece) {
+      cpuPiecePresent = true;
+    }
+  });
+
+  // If no cpu piece present, place randomly
+  if (!cpuPiecePresent) {
+    let rando = emptyCells[rand(emptyCells.length)];
+    placeAndCheck(rando);
+    console.log("Placed piece at " + rando);
+  } else {
+    let remainingSet = [];
+    /* Put logic that places a piece from a set of possible winning combinations in order for the cpu to better get a match. e.g., if piece placed at 0, try for 1 and 2, or 3 and 6, or 4 and 8. */
+    const getPotentialMoves = () => {
+      let matchCount = 0;
+      let matches = [];
+      let gameState = [];
+      let pieceSet = [];
+
+      // Create array of pieces
+      cells.forEach((cell) => {
+        gameState.push(`${cell.textContent}`);
+      });
+
+      console.log("game state: " + gameState);
+
+      for(let winSet in keypadWins) {
+        pieceSet = [
+          gameState[keypadWins[winSet][0]],
+          gameState[keypadWins[winSet][1]],
+          gameState[keypadWins[winSet][2]]
+        ];
+
+        let count = 0;
+        let isEmpty;
+        pieceSet.forEach((piece, index) => {
+          if (piece === "") {
+            isEmpty = true;
+          }
+        })
+        
+        pieceSet.forEach((piece, index) => {
+          if (piece === 'X'){
+            count++;
+            opponentCells.push(index);
+            if (isEmpty){
+              if (count === 2) {
+                // prioPiece is getting assigned to undefined for some reason, need to fix
+                prioPiece = getEmptyCell(pieceSet, keypadWins[winSet]);
+                priority = true;
+              }
+            }
+        }});
+
+        console.log(`prio piece: ${prioPiece}`);
+        console.log(`Entering ${winSet}`);
+        console.log(`pieceSet: ${pieceSet}`);
+        
+        
+
+        if (pieceSet.includes('X') && pieceSet.includes('O')) {
+          console.log('Route blocked');
+          let emptyCell = getEmptyCell(pieceSet, keypadWins[winSet]);
+          if (emptyCell){
+            lowPrioCells.push(getEmptyCell(pieceSet, keypadWins[winSet]));
+            console.log(emptyCell);
+          }
+        } else if (!(pieceSet.includes('X') || pieceSet.includes('O'))){
+          remainingSet.push(...keypadWins[winSet]);
+          console.log(`Added ${[keypadWins[winSet][0], keypadWins[winSet][1], keypadWins[winSet][2]]}`);
+        } else {
+          for (let elem of keypadWins[winSet]) {
+            // e.g. for 4 of 4, 1, 7
+            let candidate = [...PlayerTwo.candidate];
+            console.log(`for ${elem} in ${keypadWins[winSet]}`);
+            // if 4 holds a cpu piece, push 1 and 7 to remainingSet
+            if (!(candidate.indexOf(+elem) === -1)) {
+              console.log('Match!');
+              remainingSet.push(
+                ...keypadWins[winSet].filter((num) => num !== elem)
+              );
+            }
+          }
+        }
+
+      }
+      return remainingSet;
+    };
+
+    let potentialMoves = [... new Set(getPotentialMoves())];
+    console.log(`Forbidden cells: ${[...lowPrioCells]}`);
+    console.log(`Potential moves before: ${[...potentialMoves]}`);
+    let finalPotentialMoves = potentialMoves.filter((num) => !lowPrioCells.includes(num));
+    console.log(`Potential moves after: ${[...finalPotentialMoves]}`);
+    
+
+    /* if priority, do priority move first. otherwise, do rando part */
+    let rando = finalPotentialMoves[rand(finalPotentialMoves.length)];
+    if (rando === undefined) {
+      rando = lowPrioCells[rand(lowPrioCells.length)];
+    }
+    if (priority) {
+      console.log("rando again: " + rando);
+      placeAndCheck(prioPiece);
+      console.log("Placed prio piece at " + prioPiece);
+      priority = false;
+    } else {
+      console.log("rando again: " + rando);
+      placeAndCheck(rando);
+      console.log("Placed piece at " + rando); 
+    }
+    
+  }
+};
+
 // If the game isn't over, on every click
 let placeAndCheck = (index) => {
+  console.log('working with index ' + index);
   let cell = cells[index];
 
   // Place piece
+  // Do a check, "If firstPlayer === playerOne and equalTurnCount" before this (i think)
   if (!cell.textContent) {
     // Cell color
     cell.style.backgroundColor = `hsl(${rand(360)}deg, ${rand(100)}%, ${rand(60) + 30}%)`;
@@ -239,8 +375,9 @@ let placeAndCheck = (index) => {
 
     let result = passWinningConditionTest(currentPlayer.candidate);
 
-    // If win
-    if (result) {
+    console.log("result" + result);
+
+    let runGameOverScreen = (result)=> {
       gameOver = true;
       cells.forEach((cell) => (cell.style.pointerEvents = 'none'));
       let displayEndScreen = (result) => {
@@ -251,11 +388,15 @@ let placeAndCheck = (index) => {
         let currentPlayerPiece = currentPlayer.getPiece();
 
         endScreen.style.display = 'initial';
-        endScreenMessage.textContent = `${currentPlayer.getName()} wins`;
+        if (result){
+          endScreenMessage.textContent = `${currentPlayer.getName()} wins`;
+          currentPlayer.raiseScore();
+        } else {
+          endScreenMessage.textContent = `The cat got it`
+        }
         vsPlayerButton.addEventListener('click', () => {
           // Some kind of createNewGame() function
           gameOver = false;
-          currentPlayer.raiseScore();
           cells.forEach((cell) => {
             cell.style.pointerEvents = 'initial';
             cell.textContent = '';
@@ -275,154 +416,27 @@ let placeAndCheck = (index) => {
         `You passed the winning conditions! The result is: ${result}`
       );
     }
+
+    // If win
+    if (result) {
+      runGameOverScreen(result);
+    } else if (getFilledCells().length  === 9){
+      runGameOverScreen();
+    }
   }
 
-  // Player switched
-  onUnequalTurnCount(switchPlayer);
-  console.log(`current player is PlayerTwo? ${currentPlayer === PlayerTwo}`);
-
-  // CPU Turn
-  let runCpuTurn = function () {
-    if (gameOver){
-      return;
-    }
-    let cpuPiece = currentPlayer.getPiece();
-    let emptyCells = [];
-    let cpuPiecePresent = false;
-    let opponentCells = [];
-    // Maybe lowPrioCells instead of forbiddenCells?
-    let forbiddenCells = [];
-    let priority = false;
-    let prioPiece;
-
-
-    cells.forEach((cell, index) => {
-      if (!cell.textContent) {
-        emptyCells.push(index);
-      }
-      if (cell.textContent === cpuPiece) {
-        cpuPiecePresent = true;
-      }
-    });
-
-    // If no cpu piece present, place randomly
-    if (!cpuPiecePresent) {
-      let rando = emptyCells[rand(emptyCells.length)];
-      placeAndCheck(rando);
-      console.log("Placed piece at " + rando);
-    } else {
-      let remainingSet = [];
-      /* Put logic that places a piece from a set of possible winning combinations in order for the cpu to better get a match. e.g., if piece placed at 0, try for 1 and 2, or 3 and 6, or 4 and 8. */
-      const getPotentialMoves = () => {
-        let matchCount = 0;
-        let matches = [];
-        let gameState = [];
-        let pieceSet = [];
-
-        // Create array of pieces
-        cells.forEach((cell) => {
-          gameState.push(`${cell.textContent}`);
-        });
-
-        console.log("game state: " + gameState);
-
-        for(let winSet in keypadWins) {
-          pieceSet = [
-            gameState[keypadWins[winSet][0]],
-            gameState[keypadWins[winSet][1]],
-            gameState[keypadWins[winSet][2]]
-          ];
-
-          let count = 0;
-          let hasEmptyCell = () => {
-            pieceSet.forEach((piece, index) => {
-              if (piece === "") {
   
-              }
-            })
-          }
-          let isEmpty = hasEmptyCell(pieceSet);
-          pieceSet.forEach((piece, index) => {
-            if (piece === 'X'){
-              count++;
-              opponentCells.push(index);
-              if (isEmpty){
-                if (count === 2) {
-                  // prioPiece is getting assigned to undefined for some reason, need to fix
-                  prioPiece = getEmptyCell(pieceSet, keypadWins[winSet]);
-                  priority = true;
-                }
-              }
-          }});
+  if(currentPlayer === PlayerOne && !hasEqualTurnCount()){
+    // placeAndCheck(index);
+    switchPlayer();
+  }
+  if (currentPlayer === PlayerTwo && !hasEqualTurnCount()){
+    runCpuTurn();
+    switchPlayer();
 
-          console.log(`prio piece: ${prioPiece}`);
-          console.log(`Entering ${winSet}`);
-          console.log(`pieceSet: ${pieceSet}`);
-          
-          
-
-          if (pieceSet.includes('X') && pieceSet.includes('O')) {
-            console.log('Route blocked');
-            let emptyCell = getEmptyCell(pieceSet, keypadWins[winSet]);
-            if (emptyCell){
-              forbiddenCells.push(getEmptyCell(pieceSet, keypadWins[winSet]));
-              console.log(emptyCell);
-            }
-          } else if (!(pieceSet.includes('X') || pieceSet.includes('O'))){
-            remainingSet.push(...keypadWins[winSet]);
-            console.log(`Added ${[keypadWins[winSet][0], keypadWins[winSet][1], keypadWins[winSet][2]]}`);
-          } else {
-            for (let elem of keypadWins[winSet]) {
-              // e.g. for 4 of 4, 1, 7
-              let candidate = [...PlayerTwo.candidate];
-              console.log(`for ${elem} in ${keypadWins[winSet]}`);
-              // if 4 holds a cpu piece, push 1 and 7 to remainingSet
-              if (!(candidate.indexOf(+elem) === -1)) {
-                console.log('Match!');
-                remainingSet.push(
-                  ...keypadWins[winSet].filter((num) => num !== elem)
-                );
-              }
-            }
-          }
-
-        }
-        return remainingSet;
-      };
-
-      let potentialMoves = [... new Set(getPotentialMoves())];
-      console.log(`Forbidden cells: ${[...forbiddenCells]}`);
-      console.log(`Potential moves before: ${[...potentialMoves]}`);
-      let finalPotentialMoves = potentialMoves.filter((num) => !forbiddenCells.includes(num));
-      console.log(`Potential moves after: ${[...finalPotentialMoves]}`);
-      
-
-      /* if priority, do priority move first. otherwise, do rando part */
-      let rando = finalPotentialMoves[rand(finalPotentialMoves.length)];
-      if (rando === undefined) {
-        rando = forbiddenCells[rand(forbiddenCells.length)];
-      }
-      if (priority) {
-        console.log("rando again: " + rando);
-        placeAndCheck(prioPiece);
-        console.log("Placed prio piece at " + prioPiece);
-        priority = false;
-      } else {
-        console.log("rando again: " + rando);
-        placeAndCheck(rando);
-        console.log("Placed piece at " + rando); 
-      }
-      
-    }
-  };
-
-  onUnequalTurnCount(runCpuTurn);
-  onEqualTurnCount(switchPlayer)
-
+  }
 
 };
-
-
 
 // On every click...
 cells.forEach((cell, index) => {
@@ -431,8 +445,13 @@ cells.forEach((cell, index) => {
    */
   const gameLogic = () => {
     console.log("cell clicked: " + index);
+    console.log(hasEqualTurnCount());
     if (!gameOver) {
-      placeAndCheck(index);
+      if(currentPlayer === PlayerOne && hasEqualTurnCount()){
+        placeAndCheck(index);
+      } else if (currentPlayer === PlayerTwo && hasEqualTurnCount()){
+        runCpuTurn();
+      }
     } else {
       return;
     }
