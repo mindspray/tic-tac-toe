@@ -9,7 +9,7 @@ const PlayerFactory = (name, piece) => {
   let score = 0;
   let piecesPlaced = 0;
   let candidate = [];
-  let addCandidate = (value) => candidate.push(value);
+  let addCandidate = (value) => candidate.push(+value);
   let isCpu = false;
   let getPiece = () => piece;
   return {
@@ -65,7 +65,7 @@ let playerController = () => {
     if (vsCpuCheck.checked) {
       PlayerTwo.isCpu = true;
     }
-    if (firstPlayer === PlayerTwo) {
+    if (firstPlayer === PlayerTwo && PlayerTwo.isCpu) {
       runCpuTurn();
       switchPlayer();
     }
@@ -260,6 +260,78 @@ const keypadWins = {
   blToTr: [2, 4, 6],
 };
 
+const checkWin = ()=> {
+  // Test win if candidate length is 3
+  if (currentPlayer.candidate.length >= 3) {
+    /**
+     * Tests whether the candidate is a win.
+     * @param {Array<Number>} candidate The currently constructed candidate
+     * @returns True if the tested candidate is a match
+     */
+    const passWinningConditionTest = (candidate) => {
+      for (let winSet in keypadWins) {
+        console.log(
+          `Comparing candidate ${candidate} to winSet ${keypadWins[winSet]}`
+        );
+        if (matchArraysUnorderedVsOrdered(candidate, keypadWins[winSet])) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    let result = passWinningConditionTest(currentPlayer.candidate);
+
+    console.log('result ' + result);
+
+    let runGameOverScreen = (result) => {
+      gameOver = true;
+      cells.forEach((cell) => (cell.style.pointerEvents = 'none'));
+      let displayEndScreen = (result) => {
+        let endScreen = document.querySelector('.endScreen');
+        let endScreenMessage = document.querySelector('.endScreen .message');
+        let playAgainButton = document.querySelector('.playAgain');
+        let currentPlayerPiece = currentPlayer.getPiece();
+
+        endScreen.style.display = 'initial';
+        if (result) {
+          endScreenMessage.textContent = `${currentPlayer.getName()} wins`;
+          currentPlayer.raiseScore();
+        } else {
+          endScreenMessage.textContent = `The cat got it`;
+        }
+        playAgainButton.addEventListener('click', () => {
+          // Some kind of createNewGame() function
+          gameOver = false;
+          cells.forEach((cell) => {
+            cell.style.pointerEvents = 'initial';
+            cell.textContent = '';
+            cell.style.backgroundColor = 'white';
+          });
+          endScreen.style.display = 'none';
+          document.querySelector('.XOSelect').style.display = 'flex';
+          document.querySelector('.gameBoard').style.gap = '0px';
+          PlayerOne.candidate = [];
+          PlayerTwo.candidate = [];
+          currentPlayer = switchPlayer();
+        });
+      };
+      displayEndScreen(result);
+
+      console.log(
+        `You passed the winning conditions! The result is: ${result}`
+      );
+    };
+
+    // If win
+    if (result) {
+      runGameOverScreen(result);
+    } else if (getFilledCells().length === 9) {
+      runGameOverScreen();
+    }
+  }
+}
+
 // CPU Turn
 let runCpuTurn = () => {
   if (gameOver) {
@@ -413,6 +485,8 @@ let runCpuTurn = () => {
       console.log('Placed piece at ' + rando);
     }
   }
+
+  checkWin();
 };
 
 // If the game isn't over, on every click
@@ -432,76 +506,7 @@ let placeAndCheck = (index) => {
     console.log(`Placed an ${currentPlayer.getPiece()} at ${index}`);
   }
 
-  // Test win if candidate length is 3
-  if (currentPlayer.candidate.length >= 3) {
-    /**
-     * Tests whether the candidate is a win.
-     * @param {Array<Number>} candidate The currently constructed candidate
-     * @returns True if the tested candidate is a match
-     */
-    const passWinningConditionTest = (candidate) => {
-      for (let winSet in keypadWins) {
-        console.log(
-          `Comparing candidate ${candidate} to winSet ${keypadWins[winSet]}`
-        );
-        if (matchArraysUnorderedVsOrdered(candidate, keypadWins[winSet])) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    let result = passWinningConditionTest(currentPlayer.candidate);
-
-    console.log('result' + result);
-
-    let runGameOverScreen = (result) => {
-      gameOver = true;
-      cells.forEach((cell) => (cell.style.pointerEvents = 'none'));
-      let displayEndScreen = (result) => {
-        let endScreen = document.querySelector('.endScreen');
-        let endScreenMessage = document.querySelector('.endScreen .message');
-        let vsPlayerButton = document.querySelector('.vsPlayer');
-        let vsCpu = document.querySelector('.vsCpu');
-        let currentPlayerPiece = currentPlayer.getPiece();
-
-        endScreen.style.display = 'initial';
-        if (result) {
-          endScreenMessage.textContent = `${currentPlayer.getName()} wins`;
-          currentPlayer.raiseScore();
-        } else {
-          endScreenMessage.textContent = `The cat got it`;
-        }
-        vsPlayerButton.addEventListener('click', () => {
-          // Some kind of createNewGame() function
-          gameOver = false;
-          cells.forEach((cell) => {
-            cell.style.pointerEvents = 'initial';
-            cell.textContent = '';
-            cell.style.backgroundColor = 'white';
-          });
-          endScreen.style.display = 'none';
-          document.querySelector('.XOSelect').style.display = 'flex';
-          document.querySelector('.gameBoard').style.gap = '0px';
-          PlayerOne.candidate = [];
-          PlayerTwo.candidate = [];
-          currentPlayer = switchPlayer();
-        });
-      };
-      displayEndScreen(result);
-
-      console.log(
-        `You passed the winning conditions! The result is: ${result}`
-      );
-    };
-
-    // If win
-    if (result) {
-      runGameOverScreen(result);
-    } else if (getFilledCells().length === 9) {
-      runGameOverScreen();
-    }
-  }
+  checkWin();
 };
 
 // Add click event listener to every cell
@@ -516,14 +521,24 @@ cells.forEach((cell, index) => {
           if (currentPlayer === PlayerOne) {
             placeAndCheck(index);
             switchPlayer();
-            runCpuTurn();
+            if (PlayerTwo.isCpu){
+              runCpuTurn();
+              switchPlayer();
+            }
+          } else {
+            placeAndCheck(index);
             switchPlayer();
           }
         } else {
           if (currentPlayer === PlayerOne) {
             placeAndCheck(index);
             switchPlayer();
-            runCpuTurn();
+            if(PlayerTwo.isCpu){
+              runCpuTurn();
+              switchPlayer();
+            }
+          } else {
+            placeAndCheck(index);
             switchPlayer();
           }
         }
@@ -536,4 +551,4 @@ cells.forEach((cell, index) => {
   cell.addEventListener('click', gameLogic);
 });
 
-/* I need a way to see who went first, and when the piece count for both X and O are similar, switch players. */
+/* When PlayerTwo has gone and isCpu is true, it's not checking for a win correctly. I had a result of 'cat got it' when PlayerTwo actually won and it wasn't detected.I had to fill another piece, causing it to give a result of 'cat got it' for some reason */
