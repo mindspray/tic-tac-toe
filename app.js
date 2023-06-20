@@ -430,7 +430,7 @@ let runCpuTurn = () => {
       rando = lowPrioCells[rand(lowPrioCells.length)];
     }
     if (opportunity) {
-      placeAndCheck(prioPiece);
+      placeAndCheck(opportunePiece);
       console.log('Placed opportune piece at ' + opportunePiece);
       opportunity = false;
     } else if (priority) {
