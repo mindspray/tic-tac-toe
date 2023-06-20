@@ -61,6 +61,7 @@ let playerController = () => {
     }
 
     currentPlayer = firstPlayer;
+    console.log("Match starting...");
 
     if (vsCpuCheck.checked) {
       PlayerTwo.isCpu = true;
@@ -120,12 +121,11 @@ const matchArraysUnorderedVsOrdered = (arrUL, arrOL) => {
       // console.log(`looking for ${+elem} in arrUL ${arrUL}`);
       if (!(arrUL.indexOf(+elem) === -1)) {
         //
-        console.log(`found elem ${elem} in arrUL:${arrUL}`);
         matchCount++;
         if (matchCount === 3) {
+          console.log(`found ${arrOL} in candidate[${arrUL}]`);
           return true;
         }
-        console.log(`Match: ${matchCount}`);
         continue;
       } else {
         break;
@@ -184,7 +184,7 @@ let getXOCount = (listThing) => {
   } else {
     arr = getGameState()
   }
-  console.log(arr);
+  
   let xCount = 0;
   let oCount = 0;
   arr.forEach((cell) => {
@@ -195,13 +195,12 @@ let getXOCount = (listThing) => {
     }
   });
   
-  console.log({ x: xCount, o: oCount });
-  return { x: xCount, o: oCount };
+  return { X: xCount, O: oCount };
 };
 
 let hasEqualTurnCount = () => {
   const XOCount = getXOCount();
-  if (XOCount['o'] === XOCount['x']) {
+  if (XOCount['O'] === XOCount['X']) {
     return true;
   } else {
     return false;
@@ -222,7 +221,7 @@ let onEqualTurnCount = (
 
 let onUnequalTurnCount = (func) => {
   let XOCount = getXOCount();
-  if (XOCount['x'] !== XOCount['o']) {
+  if (XOCount['X'] !== XOCount['O']) {
     console.log(`Unequal ran: ${JSON.stringify(XOCount)}`);
     func();
   }
@@ -240,10 +239,10 @@ let getFilledCells = () => {
 
 let switchPlayer = () => {
   currentPlayer = currentPlayer == PlayerOne ? PlayerTwo : PlayerOne;
-  console.log('Players switched');
+  console.log('=== Players switched ===');
 };
 
-let getEmptyObjectValueCount = (pieceSet) => 3 - (getXOCount(pieceSet).x + getXOCount(pieceSet).o);
+let getObjectEmptyValueCount = (pieceSet) => 3 - (getXOCount(pieceSet).X + getXOCount(pieceSet).O);
 // ======= GAME LOGIC =======
 
 let gameOver = false;
@@ -269,20 +268,11 @@ const checkWin = ()=> {
      * @returns True if the tested candidate is a match
      */
     const passWinningConditionTest = (candidate) => {
-      for (let winSet in keypadWins) {
-        console.log(
-          `Comparing candidate ${candidate} to winSet ${keypadWins[winSet]}`
-        );
-        if (matchArraysUnorderedVsOrdered(candidate, keypadWins[winSet])) {
-          return true;
-        }
-      }
-      return false;
+
+      return Object.values(keypadWins).some(winSet => matchArraysUnorderedVsOrdered(candidate, winSet));
     };
 
     let result = passWinningConditionTest(currentPlayer.candidate);
-
-    console.log('result ' + result);
 
     let runGameOverScreen = (result) => {
       gameOver = true;
@@ -291,7 +281,6 @@ const checkWin = ()=> {
         let endScreen = document.querySelector('.endScreen');
         let endScreenMessage = document.querySelector('.endScreen .message');
         let playAgainButton = document.querySelector('.playAgain');
-        let currentPlayerPiece = currentPlayer.getPiece();
 
         endScreen.style.display = 'initial';
         if (result) {
@@ -317,10 +306,6 @@ const checkWin = ()=> {
         });
       };
       displayEndScreen(result);
-
-      console.log(
-        `You passed the winning conditions! The result is: ${result}`
-      );
     };
 
     // If win
@@ -338,10 +323,9 @@ let runCpuTurn = () => {
     return;
   }
   let cpuPiece = currentPlayer.getPiece();
+  let playerPiece = (cpuPiece === "X") ? "O" : "X";
   let emptyCells = [];
   let cpuPiecePresent = false;
-  let opponentCells = [];
-  let friendlyCells = [];
   let lowPrioCells = [];
   let priority = false;
   let prioPiece;
@@ -362,8 +346,6 @@ let runCpuTurn = () => {
   } else {
     let remainingSet = [];
     let gameState = getGameState();
-  
-    console.log('game state: ' + gameState);
 
     const getPotentialMoves = () => {
       for (let winSet in keypadWins) {
@@ -372,58 +354,34 @@ let runCpuTurn = () => {
         pieceSet[keypadWins[winSet][1]] = gameState[keypadWins[winSet][1]];
         pieceSet[keypadWins[winSet][2]] = gameState[keypadWins[winSet][2]];
 
-        console.log(JSON.stringify(pieceSet));
-
         if (
-          !Object.values(pieceSet).includes('X') &&
-          !Object.values(pieceSet).includes('O')
+          !Object.values(pieceSet).includes(playerPiece) &&
+          !Object.values(pieceSet).includes(cpuPiece)
         ) {
           remainingSet.push(...keypadWins[winSet]);
-          console.log(`Added ${[...keypadWins[winSet]]}`);
           continue;
         }
 
-        let xcount = 0;
-        let ocount = 0;
-
-        if (getEmptyObjectValueCount(pieceSet) > 0) {
-          // this is a shitty system to figure out the contents of pieceSet. I am trying to get the contents of XXO, XOX, OX'', X'''', etc. I should first do by how many, and then type
+        if (getObjectEmptyValueCount(pieceSet) > 0) {
           for (piecePos in pieceSet) {
-            // if a PlayerOne piece
-            if (pieceSet[piecePos] !== cpuPiece && pieceSet[piecePos] !== '') {
-              console.log("has X");
-              console.log(getXOCount(pieceSet).x);
-              opponentCells.push(piecePos);
-              // if two PlayerOne pieces
-              if (getXOCount(pieceSet).x === 2) {
-                console.log('Double X');
-                prioPiece = getEmptyCell(pieceSet, keypadWins[winSet]);
-                priority = true;
-              }
-            } else if (pieceSet[piecePos] === cpuPiece && pieceSet[piecePos] !== '') {
-              // if a PlayerTwo piece
-              console.log("has O");
-              friendlyCells.push(piecePos);
+            if (pieceSet[piecePos] === cpuPiece && pieceSet[piecePos] !== '') {
               // if two PlayerTwo pieces
-              if (getXOCount(pieceSet).o === 2) {
-                console.log('Double O');
-                opportunePiece = getEmptyCell(
-                  pieceSet[piecePos],
-                  keypadWins[winSet]
-                );
+              if (getXOCount(pieceSet)[cpuPiece] === 2) {
+                opportunePiece = getEmptyCell(pieceSet, keypadWins[winSet]);
+                console.log('Double cpu piece -- Opportunity set to ' + opportunePiece);
                 opportunity = true;
+                break;
               }
-            }
+            } else if (pieceSet[piecePos] === playerPiece && pieceSet[piecePos] !== '') {
+              // if two PlayerOne pieces
+              if (getXOCount(pieceSet)[playerPiece] === 2) {
+                prioPiece = getEmptyCell(pieceSet, keypadWins[winSet]);
+                console.log(`CPUx2: ${JSON.stringify(pieceSet)} -- Prio set to ${prioPiece}`);
+                priority = true;
+                break;
+              }
+            } 
           }
-
-          if (priority) {
-            console.log(`prio piece: ${prioPiece}`);
-          }
-          if (opportunity) {
-            console.log(`opportune piece: ${opportunePiece}`);
-          }
-
-          console.log(`Entering ${winSet}: ${JSON.stringify(pieceSet)}`);
 
           // if has X and O, push empty cell to lowprio cells
           if (pieceSet.hasOwnProperty('X') && pieceSet.hasOwnProperty('O')) {
@@ -444,10 +402,9 @@ let runCpuTurn = () => {
             for (let elem of keypadWins[winSet]) {
               // e.g. for 4 of 4, 1, 7
               let candidate = [...PlayerTwo.candidate];
-              console.log(`for ${elem} in ${keypadWins[winSet]}`);
               // if 4 holds a cpu piece, push 1 and 7 to remainingSet
               if (!(candidate.indexOf(+elem) === -1)) {
-                console.log('Match!');
+                console.log(`Match for cpu at ${elem} of ${keypadWins[winSet]}!`);
                 remainingSet.push(
                   ...keypadWins[winSet].filter((num) => num !== elem)
                 );
@@ -462,8 +419,6 @@ let runCpuTurn = () => {
     };
 
     let potentialMoves = [...new Set(getPotentialMoves())];
-    console.log(`Forbidden cells: ${[...lowPrioCells]}`);
-    console.log(`Potential moves before: ${[...potentialMoves]}`);
     let finalPotentialMoves = potentialMoves.filter(
       (num) => !lowPrioCells.includes(num)
     ).filter(num=> emptyCells.includes(num));
@@ -474,15 +429,16 @@ let runCpuTurn = () => {
     if (rando === undefined) {
       rando = lowPrioCells[rand(lowPrioCells.length)];
     }
-    if (priority) {
-      console.log('rando again: ' + rando);
+    if (opportunity) {
+      placeAndCheck(prioPiece);
+      console.log('Placed opportune piece at ' + opportunePiece);
+      opportunity = false;
+    } else if (priority) {
       placeAndCheck(prioPiece);
       console.log('Placed prio piece at ' + prioPiece);
       priority = false;
     } else {
-      console.log('rando again: ' + rando);
       placeAndCheck(rando);
-      console.log('Placed piece at ' + rando);
     }
   }
 
@@ -512,43 +468,34 @@ let placeAndCheck = (index) => {
 // Add click event listener to every cell
 cells.forEach((cell, index) => {
   const gameLogic = () => {
-    console.log('cell clicked: ' + index);
-    if (cell.textContent !== '') {
-      return;
-    } else {
-      if (!gameOver) {
-        if (hasEqualTurnCount()) {
-          if (currentPlayer === PlayerOne) {
-            placeAndCheck(index);
-            switchPlayer();
-            if (PlayerTwo.isCpu){
-              runCpuTurn();
-              switchPlayer();
-            }
-          } else {
-            placeAndCheck(index);
+    if (!cell.textContent && !gameOver){
+      if (hasEqualTurnCount()) {
+        if (currentPlayer === PlayerOne) {
+          placeAndCheck(index);
+          switchPlayer();
+          if (PlayerTwo.isCpu){
+            runCpuTurn();
             switchPlayer();
           }
         } else {
-          if (currentPlayer === PlayerOne) {
-            placeAndCheck(index);
-            switchPlayer();
-            if(PlayerTwo.isCpu){
-              runCpuTurn();
-              switchPlayer();
-            }
-          } else {
-            placeAndCheck(index);
-            switchPlayer();
-          }
+          placeAndCheck(index);
+          switchPlayer();
         }
       } else {
-        return;
+        if (currentPlayer === PlayerOne) {
+          placeAndCheck(index);
+          switchPlayer();
+          if(PlayerTwo.isCpu){
+            runCpuTurn();
+            switchPlayer();
+          }
+        } else {
+          placeAndCheck(index);
+          switchPlayer();
+        }
       }
     }
   };
 
   cell.addEventListener('click', gameLogic);
 });
-
-/* When PlayerTwo has gone and isCpu is true, it's not checking for a win correctly. I had a result of 'cat got it' when PlayerTwo actually won and it wasn't detected.I had to fill another piece, causing it to give a result of 'cat got it' for some reason */
