@@ -282,9 +282,7 @@ const keypadWins = {
 };
 
 const checkWin = ()=> {
-  console.log("Troubleshoot 1");
   if (currentPlayer.candidate.length >= 3) {
-    console.log("Troubleshoot 2");
     const passWinningConditionTest = (candidate) => {
 
       return Object.values(keypadWins).some(winSet => matchArraysUnorderedVsOrdered(candidate, winSet));
@@ -406,13 +404,9 @@ let runCpuTurn = () => {
 
           // if has X and O, push empty cell to lowprio cells
           if (pieceSet.hasOwnProperty('X') && pieceSet.hasOwnProperty('O')) {
-            console.log('Route blocked');
             let emptyCell = getEmptyCell(pieceSet, keypadWins[winSet]);
             if (emptyCell) {
               lowPrioCells.push(
-                ...keypadWins[winSet].filter((num) => num !== emptyCell)
-              );
-              console.log(
                 ...keypadWins[winSet].filter((num) => num !== emptyCell)
               );
             } else {
@@ -424,7 +418,6 @@ let runCpuTurn = () => {
               // e.g. for 4 of 4, 1, 7
               // if 4 holds a cpu piece, push 1 and 7 to remainingSet
               if (!(PlayerTwo.candidate.indexOf(+elem) === -1)) {
-                console.log(`Match for cpu at ${elem} of ${keypadWins[winSet]}!`);
                 remainingSet.push(
                   ...keypadWins[winSet].filter((num) => num !== elem)
                 );
@@ -442,7 +435,6 @@ let runCpuTurn = () => {
     let finalPotentialMoves = potentialMoves.filter(
       (num) => !lowPrioCells.includes(num)
     ).filter(num=> emptyCells.includes(num));
-    console.log(`Potential moves after: ${[...finalPotentialMoves]}`);
 
     let rando = finalPotentialMoves[rand(finalPotentialMoves.length)];
     if (rando === undefined) {
@@ -450,11 +442,11 @@ let runCpuTurn = () => {
     }
     if (opportunity) {
       placeAndCheck(opportunities[rand(opportunities.length)]);
-      console.log('Placed opportune piece at ' + opportunePiece);
+      console.log('Placed opportune piece at ' + opportunities[rand(opportunities.length)]);
       opportunity = false;
     } else if (priority) {
       placeAndCheck(prioPieces[rand(prioPieces.length)]);
-      console.log('Placed prio piece at ' + prioPiece);
+      console.log('Placed prio piece at ' + prioPieces[rand(prioPieces.length)]);
       priority = false;
     } else {
       placeAndCheck(rando);
@@ -476,7 +468,7 @@ let placeAndCheck = (index) => {
     // Capture current cell for currentPlayer
     currentPlayer.placePiece(cell);
     currentPlayer.addCandidate(index);
-    console.log(`Placed an ${currentPlayer.piece} at ${index}. Candidates are now ${currentPlayer.candidate}`);
+    console.log(`Placed an ${currentPlayer.piece} at ${index}.`);
   }
 
   checkWin();
