@@ -1,4 +1,4 @@
-// ======= PLAYER SETUP =======
+// ======= PLAYER SETUP ======= //
 /**
  * Creates a player object
  * @param {String} name The player's name
@@ -9,23 +9,30 @@ const PlayerFactory = (name, piece) => {
   let score = 0;
   let piecesPlaced = 0;
   let candidate = [];
-  let addCandidate = (value) => candidate.push(+value);
   let isCpu = false;
-  let getPiece = () => piece;
+
+  const addCandidate = function (value) {
+    this.candidate.push(+value);
+  };
+
   return {
     candidate,
+    name,
+    score,
+    piece,
     addCandidate,
     isCpu,
-    getPiece,
-    getName: () => name,
     piecesPlaced,
     placePiece: (targetElement) => {
       targetElement.innerText = piece;
       piecesPlaced++;
     },
-    raiseScore: (amount = 1) => (score += amount),
-    lowerScore: (amount = 1) => (score -= amount),
-    getScore: () => score,
+    raiseScore() {
+      this.score++; // Use regular function expression to access the player object's score
+    },
+    lowerScore() {
+      this.score--;
+    },
   };
 };
 
@@ -45,8 +52,6 @@ let playerController = () => {
   let playerOneCheck = document.querySelector('#playerOneFirst');
   let playerTwoCheck = document.querySelector('#playerTwoFirst');
 
-  /* Add radio buttonn to  see which player goes first. Set that to currentPlayer in postClick */
-
   let P1Name = prompt('Enter a name for Player 1', 'Player 1') || 'Player 1';
   let P2Name = prompt('Enter a name for Player 2', 'Player 2') || 'Player 2';
   let postClick = () => {
@@ -61,7 +66,9 @@ let playerController = () => {
     }
 
     currentPlayer = firstPlayer;
-    console.log("Match starting...");
+    PlayerOne.candidate = [];
+    PlayerTwo.candidate = [];
+    console.log("Game starting...");
 
     if (vsCpuCheck.checked) {
       PlayerTwo.isCpu = true;
@@ -72,20 +79,36 @@ let playerController = () => {
     }
   };
   XButton.addEventListener('click', (event) => {
-    PlayerOne = PlayerFactory(P1Name, 'X');
-    PlayerTwo = PlayerFactory(P2Name, 'O');
+    if(!PlayerOne) {
+      PlayerOne = PlayerFactory(P1Name, 'X')
+    } else {
+      PlayerOne.piece = 'X';
+    };
+    if(!PlayerTwo) {
+      PlayerTwo = PlayerFactory(P2Name, 'O')
+    } else {
+      PlayerTwo.piece = 'O';
+    };
     postClick();
   });
   OButton.addEventListener('click', (event) => {
-    PlayerOne = PlayerFactory(P1Name, 'O');
-    PlayerTwo = PlayerFactory(P2Name, 'X');
+    if(!PlayerOne) {
+      PlayerOne = PlayerFactory(P1Name, 'O')
+    } else {
+      PlayerOne.piece = 'O';
+    };
+    if(!PlayerTwo) {
+      PlayerTwo = PlayerFactory(P2Name, 'X')
+    } else {
+      PlayerTwo.piece = 'X';
+    };
     postClick();
   });
 };
 
 playerController();
 
-// ======= UTILITIES =======
+// ======= UTILITIES ======= //
 
 /**
  * A function to generate a random number up to n
@@ -123,7 +146,7 @@ const matchArraysUnorderedVsOrdered = (arrUL, arrOL) => {
         //
         matchCount++;
         if (matchCount === 3) {
-          console.log(`found ${arrOL} in candidate[${arrUL}]`);
+          console.log(`found ${arrOL} in arrUL[${arrUL}]`);
           return true;
         }
         continue;
@@ -142,9 +165,7 @@ const cells = document.querySelectorAll('.cell');
 
 let getGameState = () => {
   let gameState = [];
-  let pieceSet;
   
-  // Create array of pieces
   cells.forEach((cell) => {
     gameState.push(`${cell.textContent}`);
   });
@@ -238,12 +259,13 @@ let getFilledCells = () => {
 };
 
 let switchPlayer = () => {
-  currentPlayer = currentPlayer == PlayerOne ? PlayerTwo : PlayerOne;
+  currentPlayer = (currentPlayer == PlayerOne) ? PlayerTwo : PlayerOne;
   console.log('=== Players switched ===');
 };
 
 let getObjectEmptyValueCount = (pieceSet) => 3 - (getXOCount(pieceSet).X + getXOCount(pieceSet).O);
-// ======= GAME LOGIC =======
+
+// ======= GAME LOGIC ======= //
 
 let gameOver = false;
 
@@ -260,13 +282,9 @@ const keypadWins = {
 };
 
 const checkWin = ()=> {
-  // Test win if candidate length is 3
+  console.log("Troubleshoot 1");
   if (currentPlayer.candidate.length >= 3) {
-    /**
-     * Tests whether the candidate is a win.
-     * @param {Array<Number>} candidate The currently constructed candidate
-     * @returns True if the tested candidate is a match
-     */
+    console.log("Troubleshoot 2");
     const passWinningConditionTest = (candidate) => {
 
       return Object.values(keypadWins).some(winSet => matchArraysUnorderedVsOrdered(candidate, winSet));
@@ -279,18 +297,20 @@ const checkWin = ()=> {
       cells.forEach((cell) => (cell.style.pointerEvents = 'none'));
       let displayEndScreen = (result) => {
         let endScreen = document.querySelector('.endScreen');
-        let endScreenMessage = document.querySelector('.endScreen .message');
+        let endScreenMessage1 = document.querySelector('.endScreen .message1');
+        let endScreenMessage2 = document.querySelector('.endScreen .message2');
         let playAgainButton = document.querySelector('.playAgain');
 
-        endScreen.style.display = 'initial';
+        endScreen.style.display = 'flex';
         if (result) {
-          endScreenMessage.textContent = `${currentPlayer.getName()} wins`;
           currentPlayer.raiseScore();
+          endScreenMessage1.textContent = `${currentPlayer.name} wins`;
+          endScreenMessage2.textContent = `${PlayerOne.name}: ${PlayerOne.score} ${PlayerTwo.name}: ${PlayerTwo.score}`;
         } else {
-          endScreenMessage.textContent = `The cat got it`;
+          endScreenMessage1.textContent = `The cat got it`;
+          endScreenMessage2.textContent = `${PlayerOne.name}: ${PlayerOne.score} ${PlayerTwo.name}: ${PlayerTwo.score}`;
         }
         playAgainButton.addEventListener('click', () => {
-          // Some kind of createNewGame() function
           gameOver = false;
           cells.forEach((cell) => {
             cell.style.pointerEvents = 'initial';
@@ -298,11 +318,10 @@ const checkWin = ()=> {
             cell.style.backgroundColor = 'white';
           });
           endScreen.style.display = 'none';
-          document.querySelector('.XOSelect').style.display = 'flex';
           document.querySelector('.gameBoard').style.gap = '0px';
-          PlayerOne.candidate = [];
-          PlayerTwo.candidate = [];
-          currentPlayer = switchPlayer();
+          document.querySelector('.XOSelect').style.display = 'flex';
+          // PlayerOne.candidate = [];
+          // PlayerTwo.candidate = [];
         });
       };
       displayEndScreen(result);
@@ -322,7 +341,7 @@ let runCpuTurn = () => {
   if (gameOver) {
     return;
   }
-  let cpuPiece = currentPlayer.getPiece();
+  let cpuPiece = currentPlayer.piece;
   let playerPiece = (cpuPiece === "X") ? "O" : "X";
   let emptyCells = [];
   let cpuPiecePresent = false;
@@ -365,18 +384,16 @@ let runCpuTurn = () => {
         if (getObjectEmptyValueCount(pieceSet) > 0) {
           for (piecePos in pieceSet) {
             if (pieceSet[piecePos] === cpuPiece && pieceSet[piecePos] !== '') {
-              // if two PlayerTwo pieces
+              // if two CPU pieces
               if (getXOCount(pieceSet)[cpuPiece] === 2) {
                 opportunePiece = getEmptyCell(pieceSet, keypadWins[winSet]);
-                console.log('Double cpu piece -- Opportunity set to ' + opportunePiece);
                 opportunity = true;
                 break;
               }
             } else if (pieceSet[piecePos] === playerPiece && pieceSet[piecePos] !== '') {
-              // if two PlayerOne pieces
+              // if two User pieces
               if (getXOCount(pieceSet)[playerPiece] === 2) {
                 prioPiece = getEmptyCell(pieceSet, keypadWins[winSet]);
-                console.log(`CPUx2: ${JSON.stringify(pieceSet)} -- Prio set to ${prioPiece}`);
                 priority = true;
                 break;
               }
@@ -401,9 +418,8 @@ let runCpuTurn = () => {
             // if has single O, push empty to remainingCells
             for (let elem of keypadWins[winSet]) {
               // e.g. for 4 of 4, 1, 7
-              let candidate = [...PlayerTwo.candidate];
               // if 4 holds a cpu piece, push 1 and 7 to remainingSet
-              if (!(candidate.indexOf(+elem) === -1)) {
+              if (!(PlayerTwo.candidate.indexOf(+elem) === -1)) {
                 console.log(`Match for cpu at ${elem} of ${keypadWins[winSet]}!`);
                 remainingSet.push(
                   ...keypadWins[winSet].filter((num) => num !== elem)
@@ -424,7 +440,6 @@ let runCpuTurn = () => {
     ).filter(num=> emptyCells.includes(num));
     console.log(`Potential moves after: ${[...finalPotentialMoves]}`);
 
-    /* if priority, do priority move first. otherwise, do rando part */
     let rando = finalPotentialMoves[rand(finalPotentialMoves.length)];
     if (rando === undefined) {
       rando = lowPrioCells[rand(lowPrioCells.length)];
@@ -441,8 +456,6 @@ let runCpuTurn = () => {
       placeAndCheck(rando);
     }
   }
-
-  checkWin();
 };
 
 // If the game isn't over, on every click
@@ -452,14 +465,14 @@ let placeAndCheck = (index) => {
 
   // Place piece
   if (!cell.textContent) {
-    // Cell color
+    // Assign random color to cell
     cell.style.backgroundColor = `hsl(${rand(360)}deg, ${rand(100)}%, ${
       rand(60) + 30
     }%)`;
     // Capture current cell for currentPlayer
     currentPlayer.placePiece(cell);
     currentPlayer.addCandidate(index);
-    console.log(`Placed an ${currentPlayer.getPiece()} at ${index}`);
+    console.log(`Placed an ${currentPlayer.piece} at ${index}. Candidates are now ${currentPlayer.candidate}`);
   }
 
   checkWin();

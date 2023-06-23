@@ -66,6 +66,9 @@ main {
 
 .endScreen {
   display: none;
+  flex-direction: column;
+  align-items: center;
+
   position: fixed;
   top: calc(50%);
   align-self: center;
