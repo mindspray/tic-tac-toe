@@ -347,8 +347,10 @@ let runCpuTurn = () => {
   let cpuPiecePresent = false;
   let lowPrioCells = [];
   let priority = false;
+  let prioPieces = [];
   let prioPiece;
   let opportunity = false;
+  let opportunities = [];
   let opportunePiece;
 
   emptyCells = getEmptyBoardCells();
@@ -387,6 +389,7 @@ let runCpuTurn = () => {
               // if two CPU pieces
               if (getXOCount(pieceSet)[cpuPiece] === 2) {
                 opportunePiece = getEmptyCell(pieceSet, keypadWins[winSet]);
+                opportunities.push(opportunePiece);
                 opportunity = true;
                 break;
               }
@@ -394,6 +397,7 @@ let runCpuTurn = () => {
               // if two User pieces
               if (getXOCount(pieceSet)[playerPiece] === 2) {
                 prioPiece = getEmptyCell(pieceSet, keypadWins[winSet]);
+                prioPieces.push(prioPiece);
                 priority = true;
                 break;
               }
@@ -445,11 +449,11 @@ let runCpuTurn = () => {
       rando = lowPrioCells[rand(lowPrioCells.length)];
     }
     if (opportunity) {
-      placeAndCheck(opportunePiece);
+      placeAndCheck(opportunities[rand(opportunities.length)]);
       console.log('Placed opportune piece at ' + opportunePiece);
       opportunity = false;
     } else if (priority) {
-      placeAndCheck(prioPiece);
+      placeAndCheck(prioPieces[rand(prioPieces.length)]);
       console.log('Placed prio piece at ' + prioPiece);
       priority = false;
     } else {
